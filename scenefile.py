@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 class SceneFile(object):
     """An abstract representation of a Scene file."""
     def __init__(self, path):
