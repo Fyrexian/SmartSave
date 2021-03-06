@@ -32,5 +32,6 @@ class SceneFile(object):
 
 
 scene_file = SceneFile("D:/tank_model_v001.ma")
+
 print(scene_file.path)
 print(scene_file.filename)
