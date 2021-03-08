@@ -1,14 +1,25 @@
-from pathlib import Path
+from pymel.core.system import Path
+import pymel.core as pmc
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class SceneFile(object):
     """An abstract representation of a Scene file."""
-    def __init__(self, path):
+
+    def __init__(self, path=None):
         self.folder_path = Path()
         self.descriptor = 'main'
         self.task = None
         self.ver = 1
         self.ext = '.ma'
+        scene = pmc.system.sceneName()
+        if not path and scene:
+            path = scene
+        if not path and not scene:
+            log.warning("Unable to initialise Scene File object from new scene. Please specify path")
+            return
         self._init_from_path(path)
 
     @property
@@ -26,19 +37,38 @@ class SceneFile(object):
     def _init_from_path(self, path):
         path = Path(path)
         self.folder_path = path.parent
-        self.ext =path.suffix
-        self.descriptor, self.task,self.ver = path.stem.split("_")
-        self.ver = int(self.ver.split("v")[-1])
+        self.ext = path.ext
+        self.descriptor, self.task, ver = path.name.stripext().split("_")
+        self.ver = int(ver.split("v")[-1])
+
+    def save(self):
+        """saves the scenefile"""
+        try:
+            return pmc.system.saveAs(self.path)
+        except RuntimeError as err:
+            log.warning("Missing directories in path. Creating folders.")
+            self.folder_path.makedirs_p()
+            return pmc.system.saveAs(self.path)
+
+    def next_avail_ver(self):
+        pattern = "{descriptor}_{task}_v*{ext}".format(
+            descriptor=self.descriptor, task=self.task, ext=self.ext)
+        matching_scenefiles = []
+        for file_ in self.folder_path.files():
+            if file_.name.fnmatch(pattern):
+                matching_scenefiles.append(file_)
+        if not matching_scenefiles:
+            return 1
+        matching_scenefiles.sort(reverse=True)
+        latest_scenefile = matching_scenefiles[0]
+        latest_scenefile = latest_scenefile.name.stripext()
+        latest_version_num = int(latest_scenefile.split("_v")[-1])
+        return latest_version_num + 1
+
+    def increment_save(self):
+        """Increments"""
+        self.ver = self.next_avail_ver()
+        self.save()
 
 
 scene_file = SceneFile("D:/sandbox/tank_model_v001.ma")
-
-print(scene_file.folder_path)
-print(scene_file.descriptor)
-print(scene_file.task)
-print(scene_file.ver)
-print(scene_file.ext)
-print(scene_file.filename)
-
-print(scene_file.path)
-""""print(scene_file.filename)"""""
