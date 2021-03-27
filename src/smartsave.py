@@ -1,8 +1,64 @@
 from pymel.core.system import Path
 import pymel.core as pmc
 import logging
+from PySide2 import QtWidgets, QtCore
+from shiboken2 import wrapInstance
+import maya.OpenMayaUI as omui
+import maya.cmds as cmds
 
 log = logging.getLogger(__name__)
+
+
+def maya_main_window():
+    """Return the maya main window widget"""
+    main_window = omui.MQtUtil.mainWindow()
+    return wrapInstance(long(main_window), QtWidgets.QWidget)
+
+
+class SmartSaveUI(QtWidgets.QDialog):
+    """Smart Class UI Class"""
+    def __init__(self):
+        super(SmartSaveUI, self).__init__(parent=maya_main_window())
+        self.setWindowTitle("Smart Save")
+        self.setMinimumWidth(500)
+        self.setMaximumHeight(200)
+        self.setWindowFlags(self.windowFlags() ^
+                            QtCore.Qt.WindowContextHelpButtonHint)
+        self.create_ui()
+
+    def create_ui(self):
+        self.title_lbl = QtWidgets.QLabel("Smart Save")
+        self.title_lbl.setStyleSheet("font: bold 20px")
+        self.folder_lay = self._create_folder_ui()
+        self.filename_lay = self._create_filename_ui()
+        self.main_lay = QtWidgets.QVBoxLayout()
+        self.main_lay.addWidget(self.title_lbl)
+        self.main_lay.addLayout(self.folder_lay)
+        self.main_lay.addLayout(self.filename_lay)
+        self.setLayout(self.main_lay)
+
+    def _create_filename_ui(self):
+        self.descriptor_header_lbl = QtWidgets.QLabel("Descriptor")
+        self.descriptor_header_lbl.setStyleSheet("font: bold")
+        self.task_header_lbl = QtWidgets.QLabel("Task")
+        self.task_header_lbl.setStyleSheet("font: bold")
+        self.ver_header_lbl = QtWidgets.QLabel("Version")
+        self.ver_header_lbl.setStyleSheet("font: bold")
+        layout = QtWidgets.QGridLayout()
+        layout.addWidget(self.descriptor_header_lbl, 0, 0)
+        layout.addWidget(self.task_header_lbl, 0, 2)
+        layout.addWidget(self.ver_header_lbl, 0, 4)
+        return layout
+
+    def _create_folder_ui(self):
+        default_folder = Path(cmds.workspace(rootDirectory=True, query=True))
+        default_folder = default_folder / "scenes"
+        self.folder_le = QtWidgets.QLineEdit(default_folder)
+        self.folder_browse_btn = QtWidgets.QPushButton("...")
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(self.folder_le)
+        layout.addWidget(self.folder_browse_btn)
+        return layout
 
 
 class SceneFile(object):
