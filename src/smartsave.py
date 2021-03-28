@@ -24,7 +24,9 @@ class SmartSaveUI(QtWidgets.QDialog):
         self.setMaximumHeight(200)
         self.setWindowFlags(self.windowFlags() ^
                             QtCore.Qt.WindowContextHelpButtonHint)
+        self.scenefile = SceneFile()
         self.create_ui()
+        self.create_connections()
 
     def create_ui(self):
         self.title_lbl = QtWidgets.QLabel("Smart Save")
@@ -40,6 +42,19 @@ class SmartSaveUI(QtWidgets.QDialog):
         self.main_lay.addLayout(self.button_lay)
         self.setLayout(self.main_lay)
 
+    def create_connections(self):
+        self.folder_browse_btn.clicked.connect(self._browse_folder)
+
+    @QtCore.Slot()
+    def _browse_folder(self):
+        """Opens a dialogue box to browse the folder"""
+        folder = QtWidgets.QFileDialog.getExistingDirectory(
+            parent=self, caption="Select Folder", dir=self.folder_le.text(),
+            options=QtWidgets.QFileDialog.ShowDirsOnly |
+            QtWidgets.QFileDialog.DontResolveSymlinks)
+        self.folder_le.setText(folder)
+
+
     def _create_button_ui(self):
         self.save_btn = QtWidgets.QPushButton("Save")
         self.save_increment_btn = QtWidgets.QPushButton("Save Increment")
@@ -50,14 +65,14 @@ class SmartSaveUI(QtWidgets.QDialog):
 
     def _create_filename_ui(self):
         layout = self._create_filename_headers()
-        self.descriptor_le = QtWidgets.QLineEdit("main")
+        self.descriptor_le = QtWidgets.QLineEdit(self.scenefile.descriptor)
         self.descriptor_le.setMinimumWidth(100)
-        self.task_le = QtWidgets.QLineEdit("model")
+        self.task_le = QtWidgets.QLineEdit(self.scenefile.task)
         self.task_le.setFixedWidth(50)
         self.ver_sbx = QtWidgets.QSpinBox()
         self.ver_sbx.setButtonSymbols(QtWidgets.QAbstractSpinBox.PlusMinus)
         self.ver_sbx.setFixedWidth(50)
-        self.ver_sbx.setValue(1)
+        self.ver_sbx.setValue(self.scenefile.ver)
         self.ext_lbl = QtWidgets.QLabel(".ma")
         layout.addWidget(self.descriptor_le, 1, 0)
         layout.addWidget(QtWidgets.QLabel("_"), 1, 1)
@@ -95,16 +110,17 @@ class SceneFile(object):
     """An abstract representation of a Scene file."""
 
     def __init__(self, path=None):
-        self.folder_path = Path()
+        self.folder_path = Path(cmds.workspace(query=True,
+                                               rootDirectory=True)) / "scenes"
         self.descriptor = 'main'
-        self.task = None
+        self.task = 'model'
         self.ver = 1
         self.ext = '.ma'
         scene = pmc.system.sceneName()
         if not path and scene:
             path = scene
         if not path and not scene:
-            log.warning("Unable to initialise Scene File object from new scene. Please specify path")
+            log.info("Initialize with default properties")
             return
         self._init_from_path(path)
 
@@ -120,7 +136,7 @@ class SceneFile(object):
     def path(self):
         return self.folder_path / self.filename
 
-    def _init_from_path(self, path):
+    def _init_from_path(self, path=None):
         path = Path(path)
         self.folder_path = path.parent
         self.ext = path.ext
@@ -157,4 +173,4 @@ class SceneFile(object):
         self.save()
 
 
-scene_file = SceneFile("D:/sandbox/tank_model_v001.ma")
+"""scene_file = SceneFile("D:/sandbox/tank_model_v001.ma")"""
